@@ -1,43 +1,30 @@
 package com.l2.empacotador.service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import com.l2.empacotador.dto.CaixaResponseDTO;
+import com.l2.empacotador.dto.PedidoRequestDTO;
+import com.l2.empacotador.dto.PedidoResponseDTO;
+import com.l2.empacotador.dto.ProdutoRequestDTO;
 
-import com.l2.empacotador.model.CaixaResultado;
-import com.l2.empacotador.model.Pedido;
-import com.l2.empacotador.model.Produto;
+import java.util.*;
 
 public class EmpacotadorService {
 
-    // Define as caixas disponíveis com dimensões (altura, largura, comprimento) e nome
+    // Caixas disponíveis
     private static final List<Caixa> caixas = List.of(
             new Caixa("Caixa 1", 30, 40, 80),
             new Caixa("Caixa 2", 80, 50, 40),
             new Caixa("Caixa 3", 50, 80, 60)
     );
 
-    // Método principal que recebe os pedidos e devolve um resumo do empacotamento
-    public Map<String, List<CaixaResultado>> empacotar(List<Pedido> pedidos) {
-        Map<String, List<CaixaResultado>> resultado = new HashMap<>();
+    public List<PedidoResponseDTO> empacotarComDTO(List<PedidoRequestDTO> pedidosDTO) {
+        List<PedidoResponseDTO> respostas = new ArrayList<>();
 
-        for (Pedido pedido : pedidos) {
-            List<CaixaResultado> caixasDoPedido = new ArrayList<>();
-
-            // Lista de caixas abertas para esse pedido
+        for (PedidoRequestDTO pedidoDTO : pedidosDTO) {
             List<CaixaAberta> caixasAbertas = new ArrayList<>();
 
-            for (Produto produto : pedido.produtos) {
-                // Ignorar produtos com volume zero ou negativo
-                if (produto.getVolume() <= 0) {
-                    continue;
-                }
-
+            for (ProdutoRequestDTO produto : pedidoDTO.getProdutos()) {
                 boolean encaixou = false;
 
-                // Tenta colocar o produto em alguma caixa aberta
                 for (CaixaAberta caixaAberta : caixasAbertas) {
                     if (caixaAberta.cabe(produto)) {
                         caixaAberta.produtos.add(produto);
@@ -46,16 +33,13 @@ public class EmpacotadorService {
                     }
                 }
 
-                // Se não coube em nenhuma caixa aberta, abre uma nova
                 if (!encaixou) {
-                    // Acha a menor caixa que cabe o produto
                     Optional<Caixa> caixaAdequada = caixas.stream()
                             .filter(c -> c.cabe(produto))
                             .findFirst();
 
-                    // Se não encontrar caixa adequada, ignora o produto (não lança exceção)
                     if (caixaAdequada.isEmpty()) {
-                        continue;
+                        throw new RuntimeException("Produto não cabe em nenhuma caixa: " + produto.getId());
                     }
 
                     Caixa novaCaixa = caixaAdequada.get();
@@ -65,28 +49,29 @@ public class EmpacotadorService {
                 }
             }
 
-            // Transformar as caixas abertas no formato de saída usando a classe externa
+            // Converte caixas abertas para resposta DTO
+            List<CaixaResponseDTO> caixasResposta = new ArrayList<>();
             for (CaixaAberta aberta : caixasAbertas) {
                 List<String> idsProdutos = new ArrayList<>();
-                for (Produto p : aberta.produtos) {
+                for (ProdutoRequestDTO p : aberta.produtos) {
                     idsProdutos.add(p.getId());
                 }
-                caixasDoPedido.add(new CaixaResultado(aberta.caixa.nome, idsProdutos));
+                caixasResposta.add(new CaixaResponseDTO(aberta.caixa.getNome(), idsProdutos));
             }
 
-            resultado.put(pedido.getId(), caixasDoPedido);
+            respostas.add(new PedidoResponseDTO(pedidoDTO.getId(), caixasResposta));
         }
 
-        return resultado;
+        return respostas;
     }
 
-    // Classe auxiliar para representar caixas disponíveis
+    // Classes internas para controle das caixas e lógica de encaixe
     private static class Caixa {
-        String nome;
-        double altura, largura, comprimento;
-        double volume;
+        private final String nome;
+        private final double altura, largura, comprimento;
+        private final double volume;
 
-        Caixa(String nome, double altura, double largura, double comprimento) {
+        public Caixa(String nome, double altura, double largura, double comprimento) {
             this.nome = nome;
             this.altura = altura;
             this.largura = largura;
@@ -94,9 +79,10 @@ public class EmpacotadorService {
             this.volume = altura * largura * comprimento;
         }
 
-        // Verifica se o produto cabe nesta caixa (considerando volume e dimensões)
-        boolean cabe(Produto produto) {
-            // Verifica todas as possíveis orientações do produto para caber na caixa
+        public String getNome() { return nome; }
+
+        public boolean cabe(ProdutoRequestDTO produto) {
+            // Verifica todas as combinações de orientação pra encaixar o produto
             return (produto.getAltura() <= altura && produto.getLargura() <= largura && produto.getComprimento() <= comprimento)
                     || (produto.getAltura() <= altura && produto.getComprimento() <= largura && produto.getLargura() <= comprimento)
                     || (produto.getLargura() <= altura && produto.getAltura() <= largura && produto.getComprimento() <= comprimento)
@@ -106,19 +92,21 @@ public class EmpacotadorService {
         }
     }
 
-    // Caixa aberta para colocar produtos
     private static class CaixaAberta {
         Caixa caixa;
-        List<Produto> produtos = new ArrayList<>();
+        List<ProdutoRequestDTO> produtos = new ArrayList<>();
 
         CaixaAberta(Caixa caixa) {
             this.caixa = caixa;
         }
 
-        // Verifica se ainda cabe o produto nesta caixa (baseado no volume somado dos produtos)
-        boolean cabe(Produto produto) {
-            double volumeUsado = produtos.stream().mapToDouble(Produto::getVolume).sum();
-            return volumeUsado + produto.getVolume() <= caixa.volume && caixa.cabe(produto);
+        public boolean cabe(ProdutoRequestDTO produto) {
+            double volumeUsado = produtos.stream()
+                    .mapToDouble(p -> p.getAltura() * p.getLargura() * p.getComprimento())
+                    .sum();
+            double volumeProduto = produto.getAltura() * produto.getLargura() * produto.getComprimento();
+
+            return volumeUsado + volumeProduto <= caixa.volume && caixa.cabe(produto);
         }
     }
 }
