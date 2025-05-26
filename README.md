@@ -1,90 +1,99 @@
-📦 Empacotador API – Projeto de Empacotamento de Pedidos
-Esta API REST foi desenvolvida para empacotar pedidos de produtos em caixas disponíveis, otimizando o uso do espaço. Implementada em Java Spring Boot, com containerização via Docker e segurança baseada em autenticação JWT.
+# 📦 Empacotador API – Otimizador de Pedidos em Caixas
 
-🚀 Como executar localmente com Docker
-Requisitos
-Docker instalado
+API REST desenvolvida em **Java com Spring Boot**, focada em empacotar pedidos de produtos nas caixas disponíveis de forma otimizada, economizando espaço e tempo. Totalmente containerizada com Docker e com segurança via JWT.
 
-Porta 8080 livre na máquina
+---
 
-Passos
-Para criar a imagem localmente, execute:
+## 🚀 Como Executar Localmente com Docker
 
-docker build -t bobwallan/empacotador-api:1.0 .
+### ✅ Requisitos
+- Docker instalado
+- Porta `8080` livre
 
-Para executar a aplicação, rode:
+### ▶️ Passo a Passo
 
-docker run -p 8080:8080 bobwallan/empacotador-api:1.0
+**1. Build da imagem:**
+    docker build -t bobwallan/empacotador-api:1.0 .
 
-Após isso, a API estará disponível no endereço:
-http://localhost:8080
+**2. Execução da aplicação:**
+    docker run -p 8080:8080 bobwallan/empacotador-api:1.0
 
-🔐 Autenticação JWT
-A API utiliza JWT para proteger endpoints. Para acessar, siga:
+**3. Acesse a API:**
+    http://localhost:8080
 
-Faça uma requisição POST para /auth/login com o corpo JSON:
+---
+
+## 🔐 Autenticação com JWT
+
+A API protege os endpoints com autenticação JWT. Veja como utilizar:
+
+**1. Faça login:**
+POST /auth/login
+Content-Type: application/json
 
 {
-"username": "admin",
-"password": "senha123"
+  "username": "admin",
+  "password": "senha123"
 }
 
-Você receberá um token JWT no response.
+**2. No response, você receberá um token JWT.**
 
-Inclua esse token no cabeçalho Authorization das próximas requisições:
-
+**3. Para acessar os endpoints protegidos, envie o token no header:**
 Authorization: Bearer <seu-token-aqui>
 
-📦 Endpoint Principal
-POST /api/pedidos
-Recebe pedidos com produtos e retorna a distribuição otimizada em caixas.
+---
 
-Exemplo de requisição:
+## 📦 Endpoint Principal
 
+### POST /api/pedidos
+
+Recebe pedidos com lista de produtos e retorna a distribuição otimizada em caixas.
+
+**Exemplo de requisição:**
 [
-{
-"id": "pedido1",
-"produtos": [
-{"id": "produto1", "altura": 10, "largura": 20, "comprimento": 15},
-{"id": "produto2", "altura": 5, "largura": 10, "comprimento": 8}
-]
-}
+  {
+    "id": "pedido1",
+    "produtos": [
+      {"id": "produto1", "altura": 10, "largura": 20, "comprimento": 15},
+      {"id": "produto2", "altura": 5, "largura": 10, "comprimento": 8}
+    ]
+  }
 ]
 
-Exemplo de resposta:
-
+**Exemplo de resposta:**
 [
-{
-"id": "pedido1",
-"caixas": [
-{
-"caixa": "Caixa 1",
-"produtos": ["produto1", "produto2"]
-}
+  {
+    "id": "pedido1",
+    "caixas": [
+      {
+        "caixa": "Caixa 1",
+        "produtos": ["produto1", "produto2"]
+      }
+    ]
+  }
 ]
-}
-]
 
-🔁 Atualização do Projeto (Para Desenvolvedores)
-Sempre que atualizar o código, siga os passos para gerar e publicar a nova versão da imagem Docker:
+---
 
-Compile o projeto com Maven:
+## 🔁 Atualização do Projeto (Para Desenvolvedores)
 
-mvn clean package
+Sempre que atualizar o código, siga os passos abaixo para gerar e publicar uma nova imagem Docker:
 
-Crie a imagem Docker:
+**1. Compile o projeto com Maven:**
+    mvn clean package
 
-docker build -t bobwallan/empacotador-api:<versao> .
+**2. Gere a nova imagem Docker:**
+    docker build -t bobwallan/empacotador-api:<versao> .
 
-Publique no Docker Hub:
+**3. Publique no Docker Hub:**
+    docker push bobwallan/empacotador-api:<versao>
 
-docker push bobwallan/empacotador-api:<versao>
+**4. Avise os usuários para atualizarem a imagem local.**
 
-Informe os usuários para atualizarem suas imagens.
+---
 
-📫 Contato
-Desenvolvedor: Wallan Peixoto
+## 📫 Contato
 
-Email: bobwallan2@gmail.com
-
+Desenvolvedor: Wallan Peixoto  
+Email: bobwallan2@gmail.com  
 WhatsApp: (27) 99256-7995
